@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat P2P — WebRTC</title>
+  <style>
+    /* ============================================================
+       VARIÁVEIS E RESET
+       ============================================================ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --surface-hover: #242424;
+      --border: #2e2e2e;
+      --text: #e0e0e0;
+      --text-muted: #888;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius: 10px;
+      --chat-you: #1d4ed8;
+      --chat-partner: #27272a;
+      --font-mono: 'Courier New', Courier, monospace;
+      --transition: 0.2s ease;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    /* ============================================================
+       CONTAINER PRINCIPAL
+       ============================================================ */
+    #app {
+      width: 100%;
+      max-width: 720px;
+    }
+
+    /* ============================================================
+       CARDS E SEÇÕES
+       ============================================================ */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+
+    .card h1 {
+      font-size: 1.4rem;
+      margin-bottom: 6px;
+    }
+
+    .card .subtitle {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      margin-bottom: 24px;
+    }
+
+    .card h2 {
+      font-size: 1.05rem;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+
+    /* ============================================================
+       BOTÕES
+       ============================================================ */
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background var(--transition), opacity var(--transition);
+      color: #fff;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+    }
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    .btn-secondary {
+      background: var(--surface-hover);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover { background: #333; }
+
+    .btn-success {
+      background: #166534;
+      color: var(--success);
+    }
+    .btn-success:hover { background: #14532d; }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-sm {
+      padding: 6px 14px;
+      font-size: 0.82rem;
+    }
+
+    .btn-icon {
+      background: transparent;
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      font-size: 0.82rem;
+    }
+
+    /* ============================================================
+       TEXTAREAS
+       ============================================================ */
+    textarea {
+      width: 100%;
+      min-height: 90px;
+      background: #0a0a0a;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      resize: vertical;
+      outline: none;
+      transition: border var(--transition);
+    }
+
+    textarea:focus {
+      border-color: var(--primary);
+    }
+
+    textarea[readonly] {
+      color: var(--text-muted);
+      cursor: default;
+    }
+
+    /* ============================================================
+       STATUS / AVISOS
+       ============================================================ */
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin: 12px 0;
+    }
+
+    .status-info    { background: #1e3a5f; color: #93c5fd; }
+    .status-success { background: #14532d; color: #86efac; }
+    .status-warning { background: #422006; color: #fde68a; }
+    .status-error   { background: #450a0a; color: #fecaca; }
+
+    .status .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-info .dot    { background: #93c5fd; }
+    .status-success .dot { background: #86efac; }
+    .status-warning .dot { background: #fde68a; }
+    .status-error .dot   { background: #fecaca; }
+
+    /* ============================================================
+       SEÇÕES DE FLUXO (CRIAR / ENTRAR)
+       ============================================================ */
+    .flow-section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .field-group {
+      margin-bottom: 14px;
+    }
+
+    .field-group label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .textarea-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .textarea-row textarea {
+      flex: 1;
+    }
+
+    .textarea-row button {
+      flex-shrink: 0;
+    }
+
+    .spacer {
+      margin: 12px 0;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 20px 0;
+    }
+
+    .instructions {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .instructions ol {
+      padding-left: 18px;
+    }
+
+    /* ============================================================
+       TELA DE CHAT
+       ============================================================ */
+    #chat-screen {
+      display: none;
+    }
+
+    .chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .chat-header .partner-name {
+      font-weight: 600;
+      font-size: 1.05rem;
+    }
+
+    #message-list {
+      max-height: 50vh;
+      min-height: 200px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 4px 0;
+      margin-bottom: 14px;
+    }
+
+    #message-list::-webkit-scrollbar {
+      width: 5px;
+    }
+    #message-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #message-list::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 10px;
+    }
+
+    .msg {
+      max-width: 75%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      word-break: break-word;
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-you {
+      align-self: flex-end;
+      background: var(--chat-you);
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg-partner {
+      align-self: flex-start;
+      background: var(--chat-partner);
+      border-bottom-left-radius: 4px;
+    }
+
+    .msg .sender {
+      font-size: 0.72rem;
+      font-weight: 700;
+      margin-bottom: 3px;
+      opacity: 0.7;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .chat-input-area {
+      display: flex;
+      gap: 10px;
+    }
+
+    .chat-input-area input {
+      flex: 1;
+      background: #0a0a0a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border var(--transition);
+    }
+
+    .chat-input-area input:focus {
+      border-color: var(--primary);
+    }
+
+    .chat-input-area input::placeholder {
+      color: #555;
+    }
+
+    #connection-status-bar {
+      margin-top: 12px;
+      text-align: center;
+    }
+
+    .empty-chat {
+      color: var(--text-muted);
+      text-align: center;
+      padding: 40px 0;
+      font-size: 0.9rem;
+    }
+
+    /* ============================================================
+       RESPONSIVO
+       ============================================================ */
+    @media (max-width: 500px) {
+      .card { padding: 18px; }
+      .btn-group { flex-direction: column; }
+      button { width: 100%; text-align: center; }
+      .textarea-row { flex-direction: column; }
+      textarea { min-height: 70px; }
+      .msg { max-width: 90%; }
+      #message-list { max-height: 40vh; }
+    }
+
+    /* ============================================================
+       HIDDEN UTILITY
+       ============================================================ */
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       CONTAINER PRINCIPAL
+       ============================================================ -->
+  <div id="app">
+
+    <!-- ==================== TELA DE SETUP ==================== -->
+    <div id="setup-screen" class="card">
+      <h1>&#x1f4ac; Chat P2P via WebRTC</h1>
+      <p class="subtitle">Conexão direta entre navegadores — sem servidor.</p>
+
+      <!-- Seleção de papel -->
+      <div id="role-selection">
+        <h2>Escolha seu papel:</h2>
+        <div class="btn-group">
+          <button class="btn-primary" id="btn-create">&#x1f4e4; Criar Sala (Usuário A)</button>
+          <button class="btn-secondary" id="btn-join">&#x1f4e5; Entrar em Sala (Usuário B)</button>
+        </div>
+      </div>
+
+      <!-- Fluxo: Criar Oferta (Usuário A) -->
+      <div id="create-flow" class="flow-section hidden">
+        <h2>&#x1f4e4; Você é o Criador da Sala</h2>
+        <p class="instructions">
+          <strong>Passo a passo:</strong>
+          <ol>
+            <li>Clique em <em>"Gerar Oferta"</em> e aguarde a coleta de candidatos ICE.</li>
+            <li>Copie o texto Base64 gerado e envie para o Usuário B.</li>
+            <li>Cole a resposta de B no campo abaixo e clique em <em>"Conectar"</em>.</li>
+          </ol>
+        </p>
+
+        <div class="field-group">
+          <button class="btn-primary" id="btn-generate-offer">Gerar Oferta</button>
+          <div id="status-offer" class="hidden"></div>
+        </div>
+
+        <div id="offer-output-area" class="field-group hidden">
+          <label for="offer-output">Oferta SDP (Base64) — copie e envie para B:</label>
+          <div class="textarea-row">
+            <textarea id="offer-output" readonly rows="4" placeholder="Aguardando geração..."></textarea>
+            <button class="btn-sm btn-secondary" id="btn-copy-offer">Copiar</button>
+          </div>
+        </div>
+
+        <hr>
+
+        <div id="answer-input-area" class="field-group">
+          <label for="answer-input">Cole aqui a Resposta (Base64) recebida de B:</label>
+          <textarea id="answer-input" rows="4" placeholder="Cole o texto Base64 da resposta..."></textarea>
+          <div class="spacer"></div>
+          <button class="btn-success" id="btn-connect" disabled>Conectar</button>
+          <div id="status-connect" class="hidden"></div>
+        </div>
+
+        <div class="spacer"></div>
+        <button class="btn-sm btn-secondary" id="btn-back-create">&#x2190; Voltar</button>
+      </div>
+
+      <!-- Fluxo: Entrar em Sala (Usuário B) -->
+      <div id="join-flow" class="flow-section hidden">
+        <h2>&#x1f4e5; Você é o Convidado</h2>
+        <p class="instructions">
+          <strong>Passo a passo:</strong>
+          <ol>
+            <li>Cole a Oferta (Base64) recebida do Usuário A no campo abaixo.</li>
+            <li>Clique em <em>"Processar Oferta"</em> e aguarde a coleta de candidatos ICE.</li>
+            <li>Copie a Resposta gerada e envie de volta para o Usuário A.</li>
+            <li>Assim que A colar sua resposta, a conexão será estabelecida automaticamente.</li>
+          </ol>
+        </p>
+
+        <div class="field-group">
+          <label for="offer-input">Oferta SDP (Base64) recebida de A:</label>
+          <textarea id="offer-input" rows="4" placeholder="Cole o texto Base64 da oferta..."></textarea>
+          <div class="spacer"></div>
+          <button class="btn-primary" id="btn-process-offer">Processar Oferta</button>
+          <div id="status-answer" class="hidden"></div>
+        </div>
+
+        <div id="answer-output-area" class="field-group hidden">
+          <label for="answer-output">Resposta SDP (Base64) — copie e envie de volta para A:</label>
+          <div class="textarea-row">
+            <textarea id="answer-output" readonly rows="4" placeholder="Aguardando geração..."></textarea>
+            <button class="btn-sm btn-secondary" id="btn-copy-answer">Copiar</button>
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+        <button class="btn-sm btn-secondary" id="btn-back-join">&#x2190; Voltar</button>
+      </div>
+    </div>
+
+    <!-- ==================== TELA DE CHAT ==================== -->
+    <div id="chat-screen" class="card">
+      <div class="chat-header">
+        <span class="partner-name">&#x1f7e2; Conectado com Parceiro</span>
+        <button class="btn-sm btn-secondary" id="btn-new-connection">Nova Conexão</button>
+      </div>
+
+      <div id="message-list">
+        <p class="empty-chat">Conexão estabelecida. Envie a primeira mensagem!</p>
+      </div>
+
+      <div class="chat-input-area">
+        <input type="text" id="chat-input" placeholder="Digite sua mensagem..." autocomplete="off">
+        <button class="btn-primary" id="btn-send">Enviar</button>
+      </div>
+
+      <div id="connection-status-bar"></div>
+    </div>
+
+  </div>
+
+  <script src="app.js?v=3" defer></script>
+
+</body>
+</html>
