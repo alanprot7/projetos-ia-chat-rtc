@@ -367,13 +367,66 @@
        RESPONSIVO
        ============================================================ */
     @media (max-width: 500px) {
-      .card { padding: 18px; }
+      body { padding: 8px; align-items: flex-start; }
+      .card { padding: 14px; }
+      .card h1 { font-size: 1.15rem; }
+      .card h2 { font-size: 0.95rem; }
+      .card .subtitle { font-size: 0.8rem; margin-bottom: 16px; }
+
+      button {
+        width: 100%;
+        text-align: center;
+        white-space: normal;
+        padding: 10px 16px;
+        font-size: 0.88rem;
+      }
+      .btn-sm { width: auto; padding: 6px 12px; font-size: 0.78rem; }
       .btn-group { flex-direction: column; }
-      button { width: 100%; text-align: center; }
+
       .textarea-row { flex-direction: column; }
-      textarea { min-height: 70px; }
-      .msg { max-width: 90%; }
-      #message-list { max-height: 40vh; }
+      .textarea-row button { width: 100%; }
+      textarea {
+        min-height: 75px;
+        font-size: 0.7rem;
+        padding: 8px;
+      }
+
+      .flow-section { margin-top: 12px; padding-top: 12px; }
+      .instructions { font-size: 0.75rem; }
+      .instructions ol { padding-left: 16px; }
+      .spacer { margin: 8px 0; }
+      hr { margin: 14px 0; }
+
+      .chat-header {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .partner-name { font-size: 0.9rem; }
+      #btn-new-connection { font-size: 0.75rem; padding: 5px 10px; }
+
+      .msg {
+        max-width: 88%;
+        font-size: 0.85rem;
+        padding: 8px 10px;
+      }
+      .msg .sender { font-size: 0.68rem; }
+
+      #message-list {
+        max-height: 35vh;
+        min-height: 140px;
+      }
+
+      .chat-input-area {
+        flex-direction: column;
+        gap: 8px;
+      }
+      .chat-input-area input {
+        font-size: 0.88rem;
+        padding: 10px 12px;
+      }
+      .chat-input-area button {
+        width: 100%;
+      }
     }
 
     /* ============================================================
@@ -497,7 +550,7 @@
 
   </div>
 
-  <script src="app.js?v=3" defer></script>
+  <script src="app.js?v=4" defer></script>
 
 </body>
 </html>
